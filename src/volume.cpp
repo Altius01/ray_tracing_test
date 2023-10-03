@@ -16,9 +16,19 @@ volume::volume(BoundVec3 position, FreeVec3 voxel_size, int nx, int ny, int nz)
     this->min_bound_ = BoundVec3(position_ - grid_size_ * 0.5);
 }
 
-void volume::fill_voxels()
+void volume::fill_voxels(bool show_progress /*= false*/)
 {
     voxels_ = new float **[num_x_voxels_];
+
+    size_t counter = 0;
+    float inv_size = 0.f;
+    float last_progress = 0.0;
+
+    if (show_progress)
+    {
+        std::cout << "Filling voxels in progress..." << std::endl;
+        inv_size = 1.f / (num_x_voxels_ * num_y_voxels_ * num_z_voxels_);
+    }
 
     for (size_t i = 0; i < num_x_voxels_; ++i)
     {
@@ -32,9 +42,37 @@ void volume::fill_voxels()
                 voxel_pos = get_voxel_position(i, j, k);
 
                 voxels_[i][j][k] = p(voxel_pos.x(), voxel_pos.y(), voxel_pos.z());
+
+                if (show_progress)
+                {
+                    counter++;
+                    float progress = float(counter) * inv_size;
+                    if (progress <= 1.0 && (progress - last_progress) >= 0.01)
+                    {
+                        int barWidth = 70;
+                        std::cout << "[";
+                        int pos = barWidth * progress;
+                        for (int i = 0; i < barWidth; ++i)
+                        {
+                            if (i < pos)
+                                std::cout << "=";
+                            else if (i == pos)
+                                std::cout << ">";
+                            else
+                                std::cout << " ";
+                        }
+                        std::cout << "] " << int(progress * 100.0) << " %\r";
+                        std::cout.flush();
+                        last_progress = progress;
+                    }
+                }
             }
         }
     }
+
+    if (show_progress)
+        std::cout << std::endl
+                  << "Filling voxels is done!" << std::endl;
 }
 
 FreeVec3 volume::get_voxel_position(int i, int j, int k)

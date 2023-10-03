@@ -18,17 +18,25 @@ operator<<(std::ostream &stream, const Vec3 &v)
     return stream;
 }
 
-void projection::compute(volume &vol, source &s)
+void projection::compute(cv::Mat &image, volume &vol, source &s, bool show_progress /*= false*/)
 {
-    cv::Mat image(px, py, CV_32FC1, cv::Scalar(10.0));
+    cv::Mat image_(px, py, CV_32FC1, cv::Scalar(0.0));
 
     float step_lenght = MIN(vol.voxelSize().x(), MIN(vol.voxelSize().y(), vol.voxelSize().z()));
 
     float t0 = 0;
 
-    int counter = 0;
-
     light_path_int = 0.f;
+
+    size_t counter = 0;
+    float inv_size = 0.f;
+    float last_progress = 0.0;
+
+    if (show_progress)
+    {
+        std::cout << "Computing projection in progress..." << std::endl;
+        inv_size = 1.f / (px * py);
+    }
 
     for (uint32_t i = 0; i < px; ++i)
     {
@@ -41,56 +49,42 @@ void projection::compute(volume &vol, source &s)
 
             float t1 = FreeVec3(pixel_pos - s.position).length();
 
-            float tmin, tmax;
-            if (rayBoxIntersection(source_ray, vol, tmin, tmax, t0, t1))
-                counter++;
             amanatidesWooAlgorithm(source_ray, vol, t0, t1, integrate_voxel);
 
-            image.at<float>(i, j) = light_path_int;
-
-            if (light_path_int > 300)
-                std::cout << i << ' '
-                          << j << ' ' << pixel_pos
-                          << ' ' << s.position
-                          << ' ' << light_path_int << std::endl;
-
+            image_.at<float>(i, j) = light_path_int;
             light_path_int = 0.f;
-            // std::cout << light_path_int << std::endl;
+
+            if (show_progress)
+            {
+                counter++;
+                float progress = float(counter) * inv_size;
+                if (progress <= 1.0 && (progress - last_progress) >= 0.01)
+                {
+                    int barWidth = 70;
+                    std::cout << "[";
+                    int pos = barWidth * progress;
+                    for (int i = 0; i < barWidth; ++i)
+                    {
+                        if (i < pos)
+                            std::cout << "=";
+                        else if (i == pos)
+                            std::cout << ">";
+                        else
+                            std::cout << " ";
+                    }
+                    std::cout << "] " << int(progress * 100.0) << " %\r";
+                    std::cout.flush();
+                    last_progress = progress;
+                }
+            }
         }
     }
 
-    cv::Mat dst;
-    cv::normalize(image, dst, 0, 255, cv::NORM_MINMAX, CV_8UC1);
-    std::cout << counter << "\nDone!\n";
+    cv::normalize(image_, image, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
-    BoundVec3 pixel_pos = BoundVec3(Vec3(0.0, 0.0, 0.0));
-
-    Ray source_ray(s.position, UnitVec3(pixel_pos - s.position));
-
-    float t1 = FreeVec3(pixel_pos - s.position).length();
-
-    light_path_int = 0.f;
-
-    float tmin, tmax;
-
-    amanatidesWooAlgorithm(source_ray, vol, t0, t1, integrate_voxel);
-
-    double minVal;
-    double maxVal;
-    minMaxLoc(image, &minVal, &maxVal);
-
-    std::cout << "min val: " << minVal << std::endl;
-    std::cout << "max val: " << maxVal << std::endl;
-
-    std::cout << rayBoxIntersection(source_ray, vol, tmin, tmax, t0, t1) << ' '
-              << tmin << ' ' << source_ray.origin() + source_ray.direction() * tmin << ' '
-              << tmax << ' ' << source_ray.origin() + source_ray.direction() * tmax << ' '
-              << light_path_int << std::endl;
-    // cv::namedWindow("Car", cv::WINDOW_AUTOSIZE);
-
-    // cv::imshow("Car", dst);
-    cv::imwrite("file.tiff", dst);
-    // cv::waitKey(0);
+    if (show_progress)
+        std::cout << std::endl
+                  << "Computing projection is done!" << std::endl;
 }
 
 FreeVec3 projection::get_pixel_position(int i, int j)
@@ -259,20 +253,6 @@ void projection::amanatidesWooAlgorithm(const Ray &ray, const volume &grid, floa
         tMaxZ = tMax;
     }
 
-    // if (current_X_index >= grid.numberOfXVoxels() ||
-    //     current_Y_index >= grid.numberOfYVoxels() ||
-    //     current_Z_index >= grid.numberOfZVoxels() ||
-    //     end_X_index >= grid.numberOfXVoxels() ||
-    //     end_Y_index >= grid.numberOfYVoxels() ||
-    //     end_Z_index >= grid.numberOfZVoxels())
-    // {
-    // std::cout << ray_start << ' ' << ray_end << "\n";
-    // std::cout << current_X_index << ' ' << end_X_index << '\n'
-    //           << current_Y_index << ' ' << end_Y_index << '\n'
-    //           << current_Z_index << ' ' << end_Z_index << "\n\n"
-    //           << std::endl;
-    // }
-
     float tCurrent = tMin;
 
     while (current_X_index != end_X_index ||
@@ -312,13 +292,6 @@ void projection::amanatidesWooAlgorithm(const Ray &ray, const volume &grid, floa
         }
         else
         {
-            std::cout << ray_start << ' ' << ray_end << "\n";
-            std::cout << tMax << ' ' << tMin << ' ' << tMax
-                      << ' ' << tMaxY << ' ' << tMaxZ << '\n';
-            std::cout << current_X_index << ' ' << end_X_index << '\n'
-                      << current_Y_index << ' ' << end_Y_index << '\n'
-                      << current_Z_index << ' ' << end_Z_index << "\n\n"
-                      << std::endl;
             break;
         }
     }

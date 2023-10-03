@@ -1,13 +1,13 @@
 #include "sphere.h"
 
 sphere::sphere(BoundVec3 position, FreeVec3 voxel_size, int nx, int ny, int nz,
-               float radius, float ball_value)
+               float radius, float ball_value, bool show_progress /*= false*/)
     : volume(position, voxel_size, nx, ny, nz)
 {
     this->radius = radius;
     this->ball_value = ball_value;
 
-    fill_voxels();
+    fill_voxels(show_progress);
 }
 
 float sphere::p(float x, float y, float z)

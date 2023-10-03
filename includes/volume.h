@@ -3,6 +3,8 @@
 
 #include "Vec3.h"
 
+#include <iostream>
+
 class volume
 {
 private:
@@ -25,7 +27,7 @@ public:
         delete this->voxels_;
     }
 
-    void fill_voxels();
+    void fill_voxels(bool show_progress = false);
 
     inline size_t numberOfXVoxels() const { return num_x_voxels_; }
     inline size_t numberOfYVoxels() const { return num_y_voxels_; }

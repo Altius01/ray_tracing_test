@@ -6,7 +6,6 @@
 
 #include <opencv2/core.hpp>
 #include <opencv2/core/types.hpp>
-#include <opencv2/highgui.hpp>
 
 #include "Vec3.h"
 #include "source.h"
@@ -31,7 +30,7 @@ public:
     ~projection() {}
 
     FreeVec3 get_pixel_position(int i, int j);
-    void compute(volume &v, source &s);
+    void compute(cv::Mat &image, volume &v, source &s, bool show_progress = false);
 
     bool rayBoxIntersection(const Ray &ray, const volume &grid, float &tMin, float &tMax,
                             float t0, float t1) noexcept;
