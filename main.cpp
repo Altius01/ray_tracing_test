@@ -59,6 +59,8 @@ int main()
 
     float ball_value = 20.0;
 
+    std::cout << "Положение шарика: " << volume_position
+              << "\nПоложение источника: " << lighter_position << std::endl;
     // Создаем объект шар, его положение задем с помощью volume_position
     sphere ball(volume_position, voxel_size, nx, ny, nz, radius, ball_value, true);
 
